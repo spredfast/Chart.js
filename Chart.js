@@ -949,25 +949,25 @@
 			if (reflow){
 				this.reflow();
 			}
-			
+
 			if (this.options.animation && !reflow){
 				var animation = new Chart.Animation();
 				animation.numSteps = this.options.animationSteps;
 				animation.easing = this.options.animationEasing;
-				
+
 				// render function
 				animation.render = function(chartInstance, animationObject) {
 					var easingFunction = helpers.easingEffects[animationObject.easing];
 					var stepDecimal = animationObject.currentStep / animationObject.numSteps;
 					var easeDecimal = easingFunction(stepDecimal);
-					
+
 					chartInstance.draw(easeDecimal, stepDecimal, animationObject.currentStep);
 				};
-				
+
 				// user events
 				animation.onAnimationProgress = this.options.onAnimationProgress;
 				animation.onAnimationComplete = this.options.onAnimationComplete;
-				
+
 				Chart.animationService.addAnimation(this, animation);
 			}
 			else{
@@ -1390,11 +1390,11 @@
 		numSteps: 60, // default number of steps
 		easing: "", // the easing to use for this animation
 		render: null, // render function used by the animation service
-		
-		onAnimationProgress: null, // user specified callback to fire on each step of the animation 
+
+		onAnimationProgress: null, // user specified callback to fire on each step of the animation
 		onAnimationComplete: null, // user specified callback to fire when the animation finishes
 	});
-	
+
 	Chart.Tooltip = Chart.Element.extend({
 		draw : function(){
 
@@ -1771,11 +1771,15 @@
 
 					ctx.lineWidth = this.lineWidth;
 					ctx.strokeStyle = this.lineColor;
-					ctx.beginPath();
-					ctx.moveTo(xStart - 5, linePositionY);
-					ctx.lineTo(xStart, linePositionY);
-					ctx.stroke();
-					ctx.closePath();
+
+					// Small lines adjacent to the Y-axis labels
+					if (this.showYTicks) {
+						ctx.beginPath();
+						ctx.moveTo(xStart - 5, linePositionY);
+						ctx.lineTo(xStart, linePositionY);
+						ctx.stroke();
+						ctx.closePath();
+					}
 
 				},this);
 
@@ -2059,7 +2063,7 @@
 					for (var i = this.valuesCount - 1; i >= 0; i--) {
 						var centerOffset = null, outerPosition = null;
 
-						if (this.angleLineWidth > 0){
+						if (this.angleLineWidth > 0 && (i % this.angleLineInterval === 0)){
 							centerOffset = this.calculateCenterOffset(this.max);
 							outerPosition = this.getPointPosition(i, centerOffset);
 							ctx.beginPath();
@@ -2139,7 +2143,7 @@
 					return;
 				}
 			}
-			
+
 			this.animations.push({
 				chartInstance: chartInstance,
 				animationObject: animationObject
@@ -2155,7 +2159,7 @@
 			var index = helpers.findNextWhere(this.animations, function(animationWrapper) {
 				return animationWrapper.chartInstance === chartInstance;
 			});
-			
+
 			if (index)
 			{
 				this.animations.splice(index, 1);
@@ -2185,9 +2189,9 @@
 				if(this.animations[i].animationObject.currentStep > this.animations[i].animationObject.numSteps){
 					this.animations[i].animationObject.currentStep = this.animations[i].animationObject.numSteps;
 				}
-				
+
 				this.animations[i].animationObject.render(this.animations[i].chartInstance, this.animations[i].animationObject);
-				
+
 				// Check if executed the last frame.
 				if (this.animations[i].animationObject.currentStep == this.animations[i].animationObject.numSteps){
 					// Call onAnimationComplete
@@ -2277,6 +2281,9 @@
 		//Boolean - Whether to show vertical lines (except Y axis)
 		scaleShowVerticalLines: true,
 
+		//Boolean - Whether to show ticks on the Y axis
+		scaleShowYTicks: true,
+
 		//Boolean - If there is a stroke on each bar
 		barShowStroke : true,
 
@@ -2335,8 +2342,10 @@
 						bar.restore(['fillColor', 'strokeColor']);
 					});
 					helpers.each(activeBars, function(activeBar){
-						activeBar.fillColor = activeBar.highlightFill;
-						activeBar.strokeColor = activeBar.highlightStroke;
+						if (activeBar) {
+							activeBar.fillColor = activeBar.highlightFill;
+							activeBar.strokeColor = activeBar.highlightStroke;
+						}
 					});
 					this.showTooltip(activeBars);
 				});
@@ -2369,8 +2378,8 @@
 						datasetLabel: dataset.label,
 						strokeColor : (typeof dataset.strokeColor != 'string') ? dataset.strokeColor[index] : dataset.strokeColor,
 						fillColor : (typeof dataset.fillColor != 'string') ? dataset.fillColor[index] : dataset.fillColor,
-						highlightFill : (dataset.highlightFill && typeof dataset.highlightFill != 'string') ? dataset.highlightFill[index] || dataset.highlightFill : (typeof dataset.fillColor != 'string') ? dataset.fillColor[index] : dataset.fillColor,
-						highlightStroke : (dataset.highlightStroke && typeof dataset.highlightStroke != 'string') ? dataset.highlightStroke[index] || dataset.highlightStroke : (typeof dataset.strokeColor != 'string') ? dataset.strokeColor[index] : dataset.strokeColor
+						highlightFill : (dataset.highlightFill) ? (typeof dataset.highlightFill != 'string') ? dataset.highlightFill[index] : dataset.highlightFill : (typeof dataset.fillColor != 'string') ? dataset.fillColor[index] : dataset.fillColor,
+						highlightStroke : (dataset.highlightStroke) ? (typeof dataset.highlightStroke != 'string') ? dataset.highlightStroke[index] : dataset.highlightStroke : (typeof dataset.strokeColor != 'string') ? dataset.strokeColor[index] : dataset.strokeColor
 					}));
 				},this);
 
@@ -2466,6 +2475,7 @@
 				lineColor : this.options.scaleLineColor,
 				showHorizontalLines : this.options.scaleShowHorizontalLines,
 				showVerticalLines : this.options.scaleShowVerticalLines,
+				showYTicks : this.options.scaleShowYTicks,
 				gridLineWidth : (this.options.scaleShowGridLines) ? this.options.scaleGridLineWidth : 0,
 				gridLineColor : (this.options.scaleShowGridLines) ? this.options.scaleGridLineColor : "rgba(0,0,0,0)",
 				padding : (this.options.showScale) ? 0 : (this.options.barShowStroke) ? this.options.barStrokeWidth : 0,
@@ -2595,7 +2605,7 @@
 	Chart.Type.extend({
 		//Passing in a name registers this chart in the Chart namespace
 		name: "Doughnut",
-		//Providing a defaults will also register the deafults in the chart namespace
+		//Providing a defaults will also register the defaults in the chart namespace
 		defaults : defaultConfig,
 		//Initialize is fired when the chart is initialized - Data is passed in as a parameter
 		//Config is automatically merged by the core of Chart.js, and is available at this.options
@@ -2768,10 +2778,13 @@
 		scaleGridLineWidth : 1,
 
 		//Boolean - Whether to show horizontal lines (except X axis)
-		scaleShowHorizontalLines: true,
+		scaleShowHorizontalLines : true,
 
 		//Boolean - Whether to show vertical lines (except Y axis)
-		scaleShowVerticalLines: true,
+		scaleShowVerticalLines : true,
+
+		//Boolean - Whether to show ticks on the Y axis
+		scaleShowYTicks : true,
 
 		//Boolean - Whether the line is curved between points
 		bezierCurve : true,
@@ -2954,6 +2967,7 @@
 				lineColor : this.options.scaleLineColor,
 				showHorizontalLines : this.options.scaleShowHorizontalLines,
 				showVerticalLines : this.options.scaleShowVerticalLines,
+				showYTicks: this.options.scaleShowYTicks,
 				gridLineWidth : (this.options.scaleShowGridLines) ? this.options.scaleGridLineWidth : 0,
 				gridLineColor : (this.options.scaleShowGridLines) ? this.options.scaleGridLineColor : "rgba(0,0,0,0)",
 				padding: (this.options.showScale) ? 0 : this.options.pointDotRadius + this.options.pointDotStrokeWidth,
@@ -3189,7 +3203,7 @@
 	Chart.Type.extend({
 		//Passing in a name registers this chart in the Chart namespace
 		name: "PolarArea",
-		//Providing a defaults will also register the deafults in the chart namespace
+		//Providing a defaults will also register the defaults in the chart namespace
 		defaults : defaultConfig,
 		//Initialize is fired when the chart is initialized - Data is passed in as a parameter
 		//Config is automatically merged by the core of Chart.js, and is available at this.options
@@ -3414,6 +3428,9 @@
 			//Number - Pixel width of the angle line
 			angleLineWidth : 1,
 
+			//Number - Interval at which to draw angle lines ("every Nth point")
+			angleLineInterval: 1,
+
 			//String - Point label font declaration
 			pointLabelFontFamily : "'Arial'",
 
@@ -3567,6 +3584,7 @@
 				lineColor: this.options.scaleLineColor,
 				angleLineColor : this.options.angleLineColor,
 				angleLineWidth : (this.options.angleShowLineOut) ? this.options.angleLineWidth : 0,
+        angleLineInterval: (this.options.angleLineInterval) ? this.options.angleLineInterval : 1,
 				// Point labels at the edge of each line
 				pointLabelFontColor : this.options.pointLabelFontColor,
 				pointLabelFontSize : this.options.pointLabelFontSize,
