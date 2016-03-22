@@ -6,7 +6,7 @@
   "main": "Chart.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/nnnick/Chart.js.git"
+    "url": "https://github.com/spredfast/Chart.js.git"
   },
   "license" : "MIT",
   "dependences": {},
