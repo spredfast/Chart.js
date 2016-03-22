@@ -67,10 +67,13 @@ These are the customisation options specific to Line charts. These options are m
 	scaleGridLineWidth : 1,
 
 	//Boolean - Whether to show horizontal lines (except X axis)
-	scaleShowHorizontalLines: true,
+	scaleShowHorizontalLines : true,
 
 	//Boolean - Whether to show vertical lines (except Y axis)
-	scaleShowVerticalLines: true,
+	scaleShowVerticalLines : true,
+
+	//Boolean - Whether to show ticks on the Y axis
+	scaleShowYTicks : true,
 
 	//Boolean - Whether the line is curved between points
 	bezierCurve : true,
